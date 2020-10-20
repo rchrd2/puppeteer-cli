@@ -1,9 +1,20 @@
 #!/usr/bin/env node
 
-const puppeteer = require('puppeteer');
+const os = require('os');
+const path = require('path');
+const puppeteer = require('puppeteer-extra');
 const parseUrl = require('url-parse');
 const fileUrl = require('file-url');
 const isUrl = require('is-url');
+
+// will most likely go out of date
+const DEFAULT_FLASH_CONFIG = {
+    pluginVersion: '32.0.0.445',
+    pluginPath: path.join(
+        os.homedir(),
+        '/Library/Application Support/Google/Chrome/PepperFlash/32.0.0.445/PepperFlashPlayer.plugin'
+    )
+};
 
 // common options for both print and screenshot commands
 const commonOptions = {
@@ -22,8 +33,21 @@ const commonOptions = {
     'cookie': {
         describe: 'Set a cookie in the form "key:value". May be repeated for multiple cookies.',
         type: 'string'
+    },
+    'headless': {
+        boolean: true,
+        default: true
+    },
+    'flashVersion': {
+        string: true,
+        default: DEFAULT_FLASH_CONFIG.pluginVersion
+    },
+    'flashPath': {
+        string: true,
+        default: DEFAULT_FLASH_CONFIG.pluginPath
     }
 };
+
 
 const argv = require('yargs')
     .command({
@@ -145,6 +169,10 @@ async function print(argv) {
 }
 
 async function screenshot(argv) {
+    puppeteer.use(require('puppeteer-extra-plugin-flash')({
+        pluginVersion: argv.flashVersion,
+        pluginPath: argv.flashPath
+    }));
     const browser = await puppeteer.launch(buildLaunchOptions(argv));
     const page = await browser.newPage();
     const url = isUrl(argv.url) ? parseUrl(argv.url).toString() : fileUrl(argv.url);
@@ -161,7 +189,8 @@ async function screenshot(argv) {
         console.error(`Setting viewport to ${width}x${height}`);
         await page.setViewport({
             width: parseInt(width),
-            height: parseInt(height)
+            height: parseInt(height),
+            deviceScaleFactor: 2
         });
     }
 
@@ -190,13 +219,13 @@ async function screenshot(argv) {
 
 function buildLaunchOptions({ sandbox }) {
     const args = [];
-
     if (sandbox === false) {
         args.push('--no-sandbox', '--disable-setuid-sandbox');
     }
 
     return {
-        args
+        args,
+        headless: sandbox.headless || false
     };
 }
 
