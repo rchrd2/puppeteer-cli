@@ -28,7 +28,7 @@ const commonOptions = {
     },
     'wait-until': {
         string: true,
-        default: 'load'
+        default: 'networkidle2'
     },
     'cookie': {
         describe: 'Set a cookie in the form "key:value". May be repeated for multiple cookies.',
@@ -225,7 +225,7 @@ function buildLaunchOptions({ sandbox }) {
 
     return {
         args,
-        headless: sandbox.headless || false
+        headless: sandbox.headless
     };
 }
 
